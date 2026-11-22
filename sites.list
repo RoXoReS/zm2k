@@ -1,0 +1,8 @@
+# name|url|weight
+# weight is used when picking the best config (higher = more important)
+YouTube|https://www.youtube.com/|3
+YouTube CDN|https://redirector.googlevideo.com/report_mapping?di=no|2
+Discord|https://discord.com/|3
+GitHub|https://github.com/|1
+TikTok|https://www.tiktok.com/|2
+Google|https://www.google.com/generate_204|1

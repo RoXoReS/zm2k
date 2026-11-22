@@ -1,0 +1,9 @@
+# Optional mapping of flowseal fake-file names to files present on the router.
+# Format: flowseal_name|/absolute/path/on/router
+# Exact files found in /opt/etc/nfqws (or its bin/fake subdirs) are used first,
+# so this file is only a fallback for missing files.
+quic_initial_www_google_com.bin|/opt/etc/nfqws/quic_initial.bin
+tls_clienthello_www_google_com.bin|/opt/etc/nfqws/tls_clienthello.bin
+tls_clienthello_www_sferum_ru.bin|/opt/etc/nfqws/tls_clienthello.bin
+tls_clienthello_4pda_to.bin|/opt/etc/nfqws/tls_clienthello.bin
+tls_clienthello_sochi_park.bin|/opt/etc/nfqws/tls_clienthello.bin
