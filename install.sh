@@ -145,8 +145,11 @@ https://codeload.github.com/$ZM2K_REPO/tar.gz/$ZM2K_REF"
 	ZM2K_BOOTSTRAPPED=1 sh "$src/install.sh" -y "$@"
 }
 
+piped=0
+[ -f "$0" ] || piped=1
+
 if [ "${ZM2K_BOOTSTRAPPED:-0}" != 1 ] \
-	&& { [ ! -f "$SRC_DIR/index.html" ] || [ ! -f "$SRC_DIR/zm2k_lib.sh" ] || [ ! -d "$SRC_DIR/flowseal" ]; }; then
+	&& { [ "$piped" = 1 ] || [ ! -f "$SRC_DIR/index.html" ] || [ ! -f "$SRC_DIR/zm2k_lib.sh" ] || [ ! -d "$SRC_DIR/flowseal" ]; }; then
 	bootstrap "$@"
 	exit $?
 fi
