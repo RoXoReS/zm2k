@@ -105,9 +105,16 @@ zm2k_lock_release() {
 }
 
 zm2k_job_running() {
-	[ -f "$ZM2K_LOCK/pid" ] || return 1
-	pid=$(cat "$ZM2K_LOCK/pid" 2>/dev/null)
-	[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null
+	if [ -f "$ZM2K_LOCK/pid" ]; then
+		pid=$(cat "$ZM2K_LOCK/pid" 2>/dev/null)
+		[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
+	fi
+	# The lock may hold a launcher wrapper pid; the worker writes its own pid.
+	if [ -f "$ZM2K_JOB/pid" ]; then
+		pid=$(cat "$ZM2K_JOB/pid" 2>/dev/null)
+		[ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && return 0
+	fi
+	return 1
 }
 
 # --------------------------------------------------------------- nfqws.conf
@@ -515,32 +522,32 @@ zm2k_restore_original() {
 
 # ------------------------------------------------------------------- testing
 zm2k_test_sites() {
-	outfile=$1
+	s_outfile=$1
 	[ -f "$ZM2K_SITES" ] || return 1
-	: > "$outfile"
-	total=0
-	while IFS='|' read -r name url weight; do
-		case "$name" in ''|'#'*) continue ;; esac
-		[ -z "$url" ] && continue
-		total=$((total + 1))
+	: > "$s_outfile"
+	s_total=0
+	while IFS='|' read -r s_name s_url s_weight; do
+		case "$s_name" in ''|'#'*) continue ;; esac
+		[ -z "$s_url" ] && continue
+		s_total=$((s_total + 1))
 	done < "$ZM2K_SITES"
-	printf 'TEST|start|%s\n' "$total" >> "$outfile"
-	started=$(date +%s)
-	pids=""
-	while IFS='|' read -r name url weight; do
-		case "$name" in ''|'#'*) continue ;; esac
-		[ -z "$url" ] && continue
-		[ -z "$weight" ] && weight=1
+	printf 'TEST|start|%s\n' "$s_total" >> "$s_outfile"
+	s_started=$(date +%s)
+	s_pids=""
+	while IFS='|' read -r s_name s_url s_weight; do
+		case "$s_name" in ''|'#'*) continue ;; esac
+		[ -z "$s_url" ] && continue
+		[ -z "$s_weight" ] && s_weight=1
 		(
-			zm2k_test_one "$name" "$url" "$weight" >> "$outfile"
+			zm2k_test_one "$s_name" "$s_url" "$s_weight" >> "$s_outfile"
 		) &
-		pids="$pids $!"
+		s_pids="$s_pids $!"
 	done < "$ZM2K_SITES"
-	for p in $pids; do
+	for p in $s_pids; do
 		wait "$p" 2>/dev/null || true
 	done
-	ended=$(date +%s)
-	printf 'TEST|end|%s\n' "$((ended - started))" >> "$outfile"
+	s_ended=$(date +%s)
+	printf 'TEST|end|%s\n' "$((s_ended - s_started))" >> "$s_outfile"
 	return 0
 }
 

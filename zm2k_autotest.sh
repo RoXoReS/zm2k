@@ -26,7 +26,7 @@ on_signal() {
 	cancelled=1
 	exit 143
 }
-trap cleanup EXIT
+trap cleanup 0
 trap on_signal INT TERM
 
 : > "$JOB/log"

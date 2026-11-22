@@ -239,18 +239,82 @@ case "$ACTION" in
 		printf 'starting|0|0|init|||\n' > "$ZM2K_JOB/state"
 		: > "$ZM2K_JOB/log"
 		: > "$ZM2K_JOB/results"
+		: > "$ZM2K_JOB/launch.log"
 
-		nohup sh "$ZM2K_DIR/zm2k_autotest.sh" >/dev/null 2>&1 </dev/null &
-		wpid=$!
-		printf '%s\n' "$wpid" > "$ZM2K_LOCK/pid"
-		printf '%s\n' "$wpid" > "$ZM2K_JOB/pid"
-		sleep 1
-		if ! kill -0 "$wpid" 2>/dev/null; then
+		if [ ! -f "$ZM2K_DIR/zm2k_autotest.sh" ]; then
 			zm2k_lock_release
-			echo "ERROR|Не удалось запустить фоновый процесс"
+			echo "ERROR|Не найден zm2k_autotest.sh"
 			exit 0
 		fi
-		echo "STARTED|$wpid"
+
+		# setsid/nohup are optional on Keenetic: the CGI has no controlling
+		# terminal, so a plain background job also survives.
+		launch_worker() {
+			if command -v setsid >/dev/null 2>&1; then
+				setsid sh "$ZM2K_DIR/zm2k_autotest.sh" >>"$ZM2K_JOB/launch.log" 2>&1 </dev/null &
+			elif command -v nohup >/dev/null 2>&1; then
+				nohup sh "$ZM2K_DIR/zm2k_autotest.sh" >>"$ZM2K_JOB/launch.log" 2>&1 </dev/null &
+			else
+				sh "$ZM2K_DIR/zm2k_autotest.sh" >>"$ZM2K_JOB/launch.log" 2>&1 </dev/null &
+			fi
+			launcher_pid=$!
+		}
+		launch_worker
+
+		# The worker writes its own pid first; this also covers launchers that fork.
+		i=0
+		wpid=""
+		while [ $i -lt 3 ]; do
+			sleep 1
+			wpid=$(cat "$ZM2K_JOB/pid" 2>/dev/null)
+			[ -n "$wpid" ] && break
+			i=$((i + 1))
+		done
+
+		# setsid/nohup may be missing or broken: retry as a plain background job.
+		if [ -z "$wpid" ] && ! kill -0 "$launcher_pid" 2>/dev/null; then
+			sh "$ZM2K_DIR/zm2k_autotest.sh" >>"$ZM2K_JOB/launch.log" 2>&1 </dev/null &
+			launcher_pid=$!
+			sleep 1
+			wpid=$(cat "$ZM2K_JOB/pid" 2>/dev/null)
+		fi
+		[ -n "$wpid" ] || wpid=$launcher_pid
+
+		if kill -0 "$wpid" 2>/dev/null; then
+			printf '%s\n' "$wpid" > "$ZM2K_LOCK/pid"
+			echo "STARTED|$wpid"
+			exit 0
+		fi
+
+		state=$(tail -n 1 "$ZM2K_JOB/state" 2>/dev/null)
+		case "$state" in
+			error\|no-candidates*)
+				zm2k_lock_release
+				echo "ERROR|Нет конфигураций для проверки — обнови список и попробуй снова"
+				exit 0
+				;;
+			error\|no-conf*)
+				zm2k_lock_release
+				echo "ERROR|Не найден конфиг nfqws"
+				exit 0
+				;;
+		esac
+
+		if [ -f "$ZM2K_JOB/done" ]; then
+			echo "STARTED|$wpid"
+			exit 0
+		fi
+
+		launch_err=$(tail -n 1 "$ZM2K_JOB/launch.log" 2>/dev/null)
+		log_err=$(tail -n 1 "$ZM2K_JOB/log" 2>/dev/null)
+		zm2k_lock_release
+		if [ -n "$launch_err" ]; then
+			echo "ERROR|Не удалось запустить фоновый процесс: $launch_err"
+		elif [ -n "$log_err" ]; then
+			echo "ERROR|Не удалось запустить фоновый процесс: $log_err"
+		else
+			echo "ERROR|Не удалось запустить фоновый процесс"
+		fi
 		;;
 
 	autotest_status)

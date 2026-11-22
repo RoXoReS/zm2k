@@ -1,0 +1,5 @@
+# Keep every text file LF-only: the router runs BusyBox sh and lighttpd CGI,
+# where CRLF or a UTF-8 BOM breaks shebangs and commands.
+* text=auto eol=lf
+*.sh text eol=lf
+*.cgi text eol=lf

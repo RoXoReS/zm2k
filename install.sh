@@ -331,7 +331,7 @@ done
 
 # Dependencies (warn only).
 missing=""
-for c in awk sed grep curl nohup; do
+for c in awk sed grep curl; do
 	command -v "$c" >/dev/null 2>&1 || missing="$missing $c"
 done
 [ -n "$missing" ] && warn "не найдены:$missing — установи через opkg (например: opkg install curl)"

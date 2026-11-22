@@ -30,7 +30,7 @@
 - Keenetic/Netcraze с Entware.
 - `lighttpd` с `mod_cgi`.
 - `nfqws-keenetic` (пакет zapret для Keenetic).
-- `curl` (для проверки сайтов), `awk`, `sed`, `grep`, `nohup`.
+- `curl` (для проверки сайтов), `awk`, `sed`, `grep`.
 - Права на запись в `/opt/etc/nfqws` и на запуск `/opt/etc/init.d/S51nfqws`
   у пользователя, от которого работает lighttpd/CGI. На большинстве роутеров
   lighttpd запускается от root; если нет — панель сможет читать статус, но
